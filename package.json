@@ -1,0 +1,14 @@
+{
+  "name": "ddb-simple-migrate",
+  "version": "0.3.0",
+  "description": "change every item in a dynamodb table",
+  "main": "index.js",
+  "repository": "https://github.com/xandroxygen/ddb-simple-migrate",
+  "author": "Xander Moffatt <xmoffatt@instructure.com>",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.569.0",
+    "promise-retry": "^1.1.1",
+    "uuid": "^3.3.3"
+  }
+}
