@@ -1,7 +1,8 @@
 import AWS from "aws-sdk";
 import { Mode, MigrateParameters, DLQItem } from "./definitions";
-import { sleep, batchWrite, Limit } from "./lib";
+import { batchWrite, Limit, batchScan } from "./lib/dynamo";
 import fs from "fs";
+import { sleep } from "./lib/util";
 
 /**
  * Migrate a dynamodb table represented by `TableName` in `region`.
@@ -85,23 +86,10 @@ export default async ({
 
     // read a batch of 25 from the table
     log("scanning from table");
-    const scanStartTime = Date.now();
-    const batch = await client
-      .scan({
-        TableName,
-        Limit,
-        ReturnConsumedCapacity: "TOTAL",
-        ExclusiveStartKey: LastEvaluatedKey
-      })
-      .promise();
-    const scanTime = Date.now() - scanStartTime;
-
+    const batch = await batchScan(client, TableName, LastEvaluatedKey);
     LastEvaluatedKey = batch.LastEvaluatedKey;
-    log("scan consumed capacity");
-    log(`${batch.ConsumedCapacity.CapacityUnits} RCU`);
     counts.totalItems += batch.Items.length;
 
-    log(`scanned ${batch.Items.length} Items in ${scanTime / 1000} seconds`);
     log(`...filtering`);
     const filtered = batch.Items.filter(item => filterCb(item, counts, log));
     counts.migratedItems += filtered.length;
