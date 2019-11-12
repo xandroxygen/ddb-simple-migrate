@@ -1,6 +1,8 @@
 import promiseRetry from "promise-retry";
 import AWS from "aws-sdk";
+import { DLQItem } from "./definitions";
 
+export const Limit = 25;
 /**
  * write Items to TableName in batches of 25
  *
@@ -8,7 +10,7 @@ import AWS from "aws-sdk";
  * * any unprocessed items are put back on the queue
  * * any batches that error are pushed onto the dlq
  *
- * @returns {DLQItem[]} any failed batches
+ * returns any failed batches
  */
 export async function batchWrite(
   client: AWS.DynamoDB.DocumentClient,
@@ -17,7 +19,6 @@ export async function batchWrite(
   delay: number
 ): Promise<DLQItem[]> {
   let count = 0;
-  const limit = 25;
   const dlq: DLQItem[] = [];
   const queue: AWS.DynamoDB.WriteRequest[] = items.map(Item => ({
     PutRequest: { Item }
@@ -31,7 +32,7 @@ export async function batchWrite(
     await sleep(delay);
 
     let dynamoError: Error;
-    let batchRequests = queue.splice(0, limit);
+    let batchRequests = queue.splice(0, Limit);
 
     await asyncRetry(async (retryCount: number) => {
       // retry count starts at 1, only log if there was an actual retry
