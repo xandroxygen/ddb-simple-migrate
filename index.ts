@@ -1,7 +1,6 @@
 import AWS from "aws-sdk";
 import { Mode, MigrateParameters, DLQItem } from "./definitions";
 import { sleep, batchWrite, Limit } from "./lib";
-import uuid from "uuid/v4";
 import fs from "fs";
 
 /**
@@ -117,7 +116,13 @@ export default async ({
 
       // write new subscriptions to the table
       log(`writing ${Items.length} Items`);
-      await batchWrite(client, TableName, Items, options.writeDelay);
+      const batchDlq = await batchWrite(
+        client,
+        TableName,
+        Items,
+        options.writeDelay
+      );
+      dlq.push(...batchDlq);
       log("finished writing Items");
     }
 
@@ -128,7 +133,10 @@ export default async ({
 
   // write dlq to local file for later writing
   if (options.saveDlq && dlq.length > 0) {
-    const dlqPath = `migration.dlq.${uuid()}.json`;
+    const d = new Date();
+    const dlqPath = `migration.dlq.${d.getFullYear()}${d.getMonth() +
+      1}${d.getDate()}${d.getHours}${d.getMinutes()}${d.getSeconds}.json`;
+
     console.log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
     await new Promise(resolve =>
       fs.writeFile(dlqPath, JSON.stringify(dlq, null, 2), resolve)
