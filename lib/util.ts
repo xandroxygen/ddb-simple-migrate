@@ -1,4 +1,4 @@
-import promiseRetry from "promise-retry";
+import * as promiseRetry from "promise-retry";
 
 /**
  * asynchronous sleep function that waits for n milliseconds
