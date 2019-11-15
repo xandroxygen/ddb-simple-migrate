@@ -1,0 +1,18 @@
+version: '2'
+services:
+  test:
+    build: .
+    command: yarn test:examples
+    links: 
+      - dynamo
+    volumes:
+      - node-modules:/usr/src/app/node_modules
+      - ".:/usr/src/app"
+    environment:
+      AWS_ACCESS_KEY_ID: ACCESS_KEY
+      AWS_SECRET_ACCESS_KEY: SECRET_KEY
+  dynamo:
+    image: instructure/dynamo-local-admin
+
+volumes:
+  node-modules:
