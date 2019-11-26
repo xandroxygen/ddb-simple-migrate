@@ -55,16 +55,24 @@ describe("examples", () => {
 
     describe("stream mode, one table", () => {
       it("migrates with simple callback", async () => {
+        /**
+         * Example 1
+         * Simple Stream Migration
+         *
+         * - item-by-item
+         * - no filtering
+         * - pointing to local dynamo tables
+         * - adds a new attribute based on an existing one
+         */
         const { counts } = await migrate({
           TableName: tableA.TableName,
           region: config.region,
           cb: Item => ({
             ...Item,
-            NewAttr: Item.Id
+            NewAttr: `simple${Item.Id}`
           }),
           options: {
-            dynamoEndpoint: config.endpoint,
-            quiet: true
+            dynamoEndpoint: config.endpoint
           }
         });
         expect(counts.migratedItems).to.equal(ItemCount);
@@ -72,17 +80,25 @@ describe("examples", () => {
       });
 
       it("migrates with filtered items", async () => {
+        /**
+         * Example 2
+         * Filtered Stream Migration
+         *
+         * - item-by-item
+         * - filters out some items based on attributes
+         * - pointing to local dynamo tables
+         * - adds a new attribute based on an existing one
+         */
         const { counts } = await migrate({
           TableName: tableA.TableName,
           region: config.region,
           filterCb: Item => Item.OtherAttr === "hello",
           cb: Item => ({
             ...Item,
-            NewAttr: Item.Id
+            NewAttr: `filter${Item.Id}`
           }),
           options: {
-            dynamoEndpoint: config.endpoint,
-            quiet: true
+            dynamoEndpoint: config.endpoint
           }
         });
         expect(counts.migratedItems).to.equal(50);
