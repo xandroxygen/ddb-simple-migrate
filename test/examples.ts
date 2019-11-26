@@ -48,7 +48,7 @@ describe("examples", () => {
       await ensureTable(tableA);
       const Items = Array.from({ length: ItemCount }, (_, i) => ({
         Id: `id${i}`,
-        OtherAttr: "hello"
+        OtherAttr: i < 50 ? "hello" : "world"
       }));
       await batchWrite(docClient, tableA.TableName, Items, 0, true);
     });
@@ -68,6 +68,25 @@ describe("examples", () => {
           }
         });
         expect(counts.migratedItems).to.equal(ItemCount);
+        expect(counts.totalItems).to.equal(ItemCount);
+      });
+
+      it("migrates with filtered items", async () => {
+        const { counts } = await migrate({
+          TableName: tableA.TableName,
+          region: config.region,
+          filterCb: Item => Item.OtherAttr === "hello",
+          cb: Item => ({
+            ...Item,
+            NewAttr: Item.Id
+          }),
+          options: {
+            dynamoEndpoint: config.endpoint,
+            quiet: true
+          }
+        });
+        expect(counts.migratedItems).to.equal(50);
+        expect(counts.totalItems).to.equal(ItemCount);
       });
     });
   });
