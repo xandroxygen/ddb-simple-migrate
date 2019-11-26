@@ -1,13 +1,10 @@
 import "mocha";
-import { expect, use } from "chai";
-import * as sinon from "sinon";
-import * as sinonChai from "sinon-chai";
+import { expect } from "chai";
 import * as AWS from "aws-sdk";
-import { tableA } from "./schema";
+import { tableA, tableB } from "./schema";
 import migrate from "../index";
 import { batchWrite } from "../lib/dynamo";
-
-use(sinonChai);
+import { Mode } from "../definitions";
 
 describe("examples", () => {
   const config = {
@@ -103,6 +100,56 @@ describe("examples", () => {
         });
         expect(counts.migratedItems).to.equal(50);
         expect(counts.totalItems).to.equal(ItemCount);
+      });
+    });
+
+    describe("batch mode, two tables", () => {
+      beforeEach(async () => {
+        await ensureTable(tableB);
+      });
+
+      it("migrates with batch callback", async () => {
+        /**
+         * Example 3
+         * Batch Migration
+         *
+         * - gives more control over each batch
+         * - better for things like using each batch to write to a second table
+         * - batchWrite needs to be called on the given batch, and can be called
+         *    on other batches as well
+         * - more opportunity to use the counts and logs that are provided
+         * - pointing to local dynamo tables
+         * - adds a new attribute based on an existing one
+         * - adds 2 items to table B for every item in table A
+         * - logs actions taken during batch
+         */
+        const { counts } = await migrate({
+          TableName: tableA.TableName,
+          region: config.region,
+          batchCb: async (client, batch, counts, log, batchWrite) => {
+            log("writing batch to table A");
+            await batchWrite(client, tableA.TableName, batch);
+
+            log("generating items for B");
+            const ItemsForB = [];
+            for (const item of batch) {
+              ItemsForB.push({ ...item, Key: `lookup1` });
+              ItemsForB.push({ ...item, Key: `lookup2` });
+            }
+
+            counts.bItems += ItemsForB.length;
+
+            log(`writing ${ItemsForB.length} to table B`);
+            await batchWrite(client, tableB.TableName, ItemsForB);
+          },
+          options: {
+            mode: Mode.Batch,
+            dynamoEndpoint: config.endpoint,
+            customCounts: ["bItems"]
+          }
+        });
+
+        expect(counts.bItems).to.equal(2 * counts.totalItems);
       });
     });
   });

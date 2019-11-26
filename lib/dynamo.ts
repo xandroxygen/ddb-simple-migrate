@@ -1,5 +1,5 @@
 import * as AWS from "aws-sdk";
-import { DLQItem } from "../definitions";
+import { DLQItem, BatchWrite } from "../definitions";
 import { sleep, asyncRetry } from "./util";
 
 export const Limit = 25;
@@ -42,11 +42,11 @@ export async function batchScan(
  *
  * returns any failed batches
  */
-export async function batchWrite(
+export const batchWrite: BatchWrite = async function(
   client: AWS.DynamoDB.DocumentClient,
   tableName: string,
   items: any[],
-  delay: number,
+  delay: number = 0,
   quiet: boolean = false
 ): Promise<DLQItem[]> {
   let count = 0;
@@ -115,4 +115,4 @@ export async function batchWrite(
   }
 
   return dlq;
-}
+};

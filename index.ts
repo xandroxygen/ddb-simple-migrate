@@ -1,5 +1,5 @@
 import * as AWS from "aws-sdk";
-import { Mode, MigrateParameters, DLQItem } from "./definitions";
+import { Mode, MigrateParameters, DLQItem, Counts } from "./definitions";
 import { batchWrite, Limit, batchScan } from "./lib/dynamo";
 import { writeFile } from "fs";
 import { sleep } from "./lib/util";
@@ -66,7 +66,7 @@ export default async ({
     ...options
   };
 
-  const counts = {
+  const counts: Counts = {
     batch: 0,
     totalItems: 0,
     migratedItems: 0
@@ -118,7 +118,7 @@ export default async ({
 
     if (opts.mode === Mode.Batch) {
       log("handing control to batch mode callback");
-      await batchCb(filtered, counts, log, batchWrite);
+      await batchCb(client, filtered, counts, log, batchWrite);
     } else {
       const Items = await Promise.all(
         filtered.map(item => cb(item, counts, log))
