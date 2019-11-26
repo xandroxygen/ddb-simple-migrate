@@ -25,6 +25,6 @@
   },
   "scripts": {
     "test": "mocha -r ts-node/register test/**/*.test.ts",
-    "test:examples": "mocha -r ts-node/register test/examples.ts"
+    "test:examples": "mocha -r ts-node/register --timeout 30000 test/examples.ts"
   }
 }

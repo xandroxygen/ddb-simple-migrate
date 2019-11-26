@@ -4,14 +4,18 @@ import * as sinon from "sinon";
 import * as sinonChai from "sinon-chai";
 import * as AWS from "aws-sdk";
 import { tableA } from "./schema";
+import migrate from "../index";
+import { batchWrite } from "../lib/dynamo";
 
 use(sinonChai);
 
 describe("examples", () => {
-  const ddb = new AWS.DynamoDB({
+  const config = {
     endpoint: "http://dynamo:8000",
     region: "us-east-1"
-  });
+  };
+
+  const ddb = new AWS.DynamoDB(config);
 
   const ensureTable = async schema => {
     try {
@@ -33,6 +37,37 @@ describe("examples", () => {
         .describeTable({ TableName: tableA.TableName })
         .promise();
       expect(result.Table.TableName).to.equal(tableA.TableName);
+    });
+  });
+
+  describe("with populated table", () => {
+    const docClient = new AWS.DynamoDB.DocumentClient({ service: ddb });
+    const ItemCount = 100;
+
+    beforeEach(async () => {
+      await ensureTable(tableA);
+      const Items = Array.from({ length: ItemCount }, (_, i) => ({
+        Id: `id${i}`,
+        OtherAttr: "hello"
+      }));
+      await batchWrite(docClient, tableA.TableName, Items, 0);
+    });
+
+    describe("stream mode, one table", () => {
+      it("migrates with simple callback", async () => {
+        const { counts } = await migrate({
+          TableName: tableA.TableName,
+          region: config.region,
+          cb: Item => ({
+            ...Item,
+            NewAttr: Item.Id
+          }),
+          options: {
+            dynamoEndpoint: config.endpoint
+          }
+        });
+        expect(counts.migratedItems).to.equal(ItemCount);
+      });
     });
   });
 });

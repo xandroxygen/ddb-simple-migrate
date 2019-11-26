@@ -1,8 +1,17 @@
-import AWS from "aws-sdk";
+import * as AWS from "aws-sdk";
 import { Mode, MigrateParameters, DLQItem } from "./definitions";
 import { batchWrite, Limit, batchScan } from "./lib/dynamo";
-import fs from "fs";
+import { writeFile } from "fs";
 import { sleep } from "./lib/util";
+
+const defaultOptions = {
+  scanDelay: 0,
+  writeDelay: 0,
+  mode: Mode.Stream,
+  dynamoEndpoint: "",
+  customCounts: [],
+  saveDlq: true
+};
 
 /**
  * Migrate a dynamodb table represented by `TableName` in `region`.
@@ -41,14 +50,7 @@ export default async ({
   batchCb = () => {
     throw new Error(`batchCb must be overridden in batch mode`);
   },
-  options = {
-    scanDelay: 0,
-    writeDelay: 0,
-    mode: Mode.Stream,
-    dynamoEndpoint: "",
-    customCounts: [],
-    saveDlq: true
-  }
+  options = defaultOptions
 }: MigrateParameters) => {
   const client = new AWS.DynamoDB.DocumentClient({
     region,
@@ -56,17 +58,23 @@ export default async ({
     endpoint: options.dynamoEndpoint
   });
 
+  // make sure default options are properly set
+  const opts = {
+    ...defaultOptions,
+    ...options
+  };
+
   const counts = {
     batch: 0,
     totalItems: 0,
     migratedItems: 0
   };
-  options.customCounts.forEach(custom => {
+  opts.customCounts.forEach(custom => {
     counts[custom] = 0;
   });
 
   console.log("...preparing to run with these settings:");
-  console.log(JSON.stringify({ TableName, region, ...options }, null, 2));
+  console.log(JSON.stringify({ TableName, region, ...opts }, null, 2));
   console.log("...waiting 5 seconds, press Ctrl-C twice to quit");
   await sleep(5000);
 
@@ -81,8 +89,8 @@ export default async ({
     log("starting batch!");
 
     // delay to keep throughput down
-    log(`...sleeping ${options.scanDelay} ms`);
-    await sleep(options.scanDelay);
+    log(`...sleeping ${opts.scanDelay} ms`);
+    await sleep(opts.scanDelay);
 
     // read a batch of 25 from the table
     log("scanning from table");
@@ -96,7 +104,7 @@ export default async ({
 
     log(`migrating ${filtered.length} Items`);
 
-    if (options.mode === Mode.Batch) {
+    if (opts.mode === Mode.Batch) {
       log("handing control to batch mode callback");
       await batchCb(filtered, counts, log, batchWrite);
     } else {
@@ -110,7 +118,7 @@ export default async ({
         client,
         TableName,
         Items,
-        options.writeDelay
+        opts.writeDelay
       );
       dlq.push(...batchDlq);
       log("finished writing Items");
@@ -122,14 +130,14 @@ export default async ({
   } while (LastEvaluatedKey !== undefined);
 
   // write dlq to local file for later writing
-  if (options.saveDlq && dlq.length > 0) {
+  if (opts.saveDlq && dlq.length > 0) {
     const d = new Date();
     const dlqPath = `migration.dlq.${d.getFullYear()}${d.getMonth() +
       1}${d.getDate()}${d.getHours}${d.getMinutes()}${d.getSeconds}.json`;
 
     console.log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
     await new Promise(resolve =>
-      fs.writeFile(dlqPath, JSON.stringify(dlq, null, 2), resolve)
+      writeFile(dlqPath, JSON.stringify(dlq, null, 2), resolve)
     );
   }
 
@@ -142,9 +150,9 @@ export default async ({
   console.log(`Total items migrated: ${counts.migratedItems}`);
   console.log(`Time spent          : ${migrationTime / 1000}s`);
 
-  if (options.customCounts.length > 0) {
+  if (opts.customCounts.length > 0) {
     console.log("\n* Custom Counts *");
-    options.customCounts.forEach(custom => {
+    opts.customCounts.forEach(custom => {
       console.log(`"${custom}": ${counts[custom]}`);
     });
   }

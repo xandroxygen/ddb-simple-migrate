@@ -81,7 +81,9 @@ export async function batchWrite(
         const writeTime = Date.now() - writeStartTime;
 
         log(
-          `consumed ${result.ConsumedCapacity[0].CapacityUnits} WCU in ${writeTime} seconds`
+          `consumed ${
+            result.ConsumedCapacity[0].CapacityUnits
+          } WCU in ${writeTime / 1000} seconds`
         );
         unprocessedRequests = result.UnprocessedItems;
       } catch (e) {
