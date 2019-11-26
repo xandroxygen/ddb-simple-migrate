@@ -7,9 +7,10 @@ export const Limit = 25;
 export async function batchScan(
   client: AWS.DynamoDB.DocumentClient,
   tableName: string,
-  LastEvaluatedKey: AWS.DynamoDB.DocumentClient.Key
+  LastEvaluatedKey: AWS.DynamoDB.DocumentClient.Key,
+  quiet: boolean = false
 ) {
-  const log = (message: string) => console.log(`  s: ${message}`);
+  const log = (message: string) => !quiet && console.log(`  s: ${message}`);
 
   const scanStartTime = Date.now();
   const batch = await client
@@ -45,7 +46,8 @@ export async function batchWrite(
   client: AWS.DynamoDB.DocumentClient,
   tableName: string,
   items: any[],
-  delay: number
+  delay: number,
+  quiet: boolean = false
 ): Promise<DLQItem[]> {
   let count = 0;
   const dlq: DLQItem[] = [];
@@ -53,7 +55,8 @@ export async function batchWrite(
     PutRequest: { Item }
   }));
 
-  const log = (message: string) => console.log(`  w${count}: ${message}`);
+  const log = (message: string) =>
+    !quiet && console.log(`  w${count}: ${message}`);
 
   // write the batch until all items have been written
   while (queue.length > 0) {

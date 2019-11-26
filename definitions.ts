@@ -28,6 +28,7 @@ export interface Options {
   dynamoEndpoint?: string;
   customCounts?: string[];
   saveDlq?: boolean;
+  quiet?: boolean;
 }
 
 export interface MigrateParameters {

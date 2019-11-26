@@ -50,7 +50,7 @@ describe("examples", () => {
         Id: `id${i}`,
         OtherAttr: "hello"
       }));
-      await batchWrite(docClient, tableA.TableName, Items, 0);
+      await batchWrite(docClient, tableA.TableName, Items, 0, true);
     });
 
     describe("stream mode, one table", () => {
@@ -63,7 +63,8 @@ describe("examples", () => {
             NewAttr: Item.Id
           }),
           options: {
-            dynamoEndpoint: config.endpoint
+            dynamoEndpoint: config.endpoint,
+            quiet: true
           }
         });
         expect(counts.migratedItems).to.equal(ItemCount);

@@ -10,7 +10,8 @@ const defaultOptions = {
   mode: Mode.Stream,
   dynamoEndpoint: "",
   customCounts: [],
-  saveDlq: true
+  saveDlq: true,
+  quiet: false
 };
 
 /**
@@ -39,6 +40,7 @@ const defaultOptions = {
  * "counts", for keeping track of different values. Prints them at the end.
  * @param p.options.saveDlq defaults to true. saves dlq to a json file in the current directory,
  * including table name, batch requests, and dynamo error.
+ * @param p.options.quiet defaults to false. when true, silences all log output.
  */
 export default async ({
   TableName,
@@ -73,19 +75,24 @@ export default async ({
     counts[custom] = 0;
   });
 
-  console.log("...preparing to run with these settings:");
-  console.log(JSON.stringify({ TableName, region, ...opts }, null, 2));
-  console.log("...waiting 5 seconds, press Ctrl-C twice to quit");
-  await sleep(5000);
+  if (!opts.quiet) {
+    console.log("...preparing to run with these settings:");
+    console.log(JSON.stringify({ TableName, region, ...opts }, null, 2));
+    console.log("...waiting 5 seconds, press Ctrl-C twice to quit");
+    await sleep(5000);
+  }
 
   let LastEvaluatedKey: AWS.DynamoDB.DocumentClient.Key;
   const migrationStartTime = Date.now();
   const dlq: DLQItem[] = [];
-  const log = (message: string) => console.log(`${counts.batch}: ${message}`);
+  const log = (message: string) =>
+    !opts.quiet && console.log(`${counts.batch}: ${message}`);
 
   // scan until the table is finished
   do {
-    console.log("\n");
+    if (!opts.quiet) {
+      console.log("\n");
+    }
     log("starting batch!");
 
     // delay to keep throughput down
@@ -94,7 +101,12 @@ export default async ({
 
     // read a batch of 25 from the table
     log("scanning from table");
-    const batch = await batchScan(client, TableName, LastEvaluatedKey);
+    const batch = await batchScan(
+      client,
+      TableName,
+      LastEvaluatedKey,
+      opts.quiet
+    );
     LastEvaluatedKey = batch.LastEvaluatedKey;
     counts.totalItems += batch.Items.length;
 
@@ -118,7 +130,8 @@ export default async ({
         client,
         TableName,
         Items,
-        opts.writeDelay
+        opts.writeDelay,
+        opts.quiet
       );
       dlq.push(...batchDlq);
       log("finished writing Items");
@@ -135,7 +148,9 @@ export default async ({
     const dlqPath = `migration.dlq.${d.getFullYear()}${d.getMonth() +
       1}${d.getDate()}${d.getHours}${d.getMinutes()}${d.getSeconds}.json`;
 
-    console.log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
+    if (!opts.quiet) {
+      console.log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
+    }
     await new Promise(resolve =>
       writeFile(dlqPath, JSON.stringify(dlq, null, 2), resolve)
     );
@@ -143,18 +158,20 @@ export default async ({
 
   const migrationTime = Date.now() - migrationStartTime;
 
-  console.log("\n\n* Finished migration *\n");
-  console.log(`Failed batches      : ${dlq.length}`);
-  console.log(`Total batches       : ${counts.batch}`);
-  console.log(`Total items scanned : ${counts.totalItems}`);
-  console.log(`Total items migrated: ${counts.migratedItems}`);
-  console.log(`Time spent          : ${migrationTime / 1000}s`);
+  if (!opts.quiet) {
+    console.log("\n\n* Finished migration *\n");
+    console.log(`Failed batches      : ${dlq.length}`);
+    console.log(`Total batches       : ${counts.batch}`);
+    console.log(`Total items scanned : ${counts.totalItems}`);
+    console.log(`Total items migrated: ${counts.migratedItems}`);
+    console.log(`Time spent          : ${migrationTime / 1000}s`);
 
-  if (opts.customCounts.length > 0) {
-    console.log("\n* Custom Counts *");
-    opts.customCounts.forEach(custom => {
-      console.log(`"${custom}": ${counts[custom]}`);
-    });
+    if (opts.customCounts.length > 0) {
+      console.log("\n* Custom Counts *");
+      opts.customCounts.forEach(custom => {
+        console.log(`"${custom}": ${counts[custom]}`);
+      });
+    }
   }
 
   return {
