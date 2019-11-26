@@ -14,9 +14,9 @@ import { sleep } from "./lib/util";
  * @param p.TableName the name of the dynamo table
  * @param p.region the AWS region, eg 'us-east-1'
  * @param p.filterCb callback to filter out unneeded items. return true to migrate item
- * @param p.cb callback to change item before writing back to table. is passed the Item,
+ * @param p.cb async callback to change item before writing back to table. is passed the Item,
  * the counts object, and the batchLog function. not called in batch mode. return the changed item.
- * @param p.batchCb callback to change a batch of items. is passed the Items array, the
+ * @param p.batchCb async callback to change a batch of items. is passed the Items array, the
  * counts object, the batchLog function, the batchWrite function, and the dlq array. only called in
  * batch mode. does not return, is responsible for writing changed Items to the table.
  * @param p.options.scanDelay ms to wait between scan batches
@@ -98,9 +98,11 @@ export default async ({
 
     if (options.mode === Mode.Batch) {
       log("handing control to batch mode callback");
-      batchCb(filtered, counts, log, batchWrite);
+      await batchCb(filtered, counts, log, batchWrite);
     } else {
-      const Items = filtered.map(item => cb(item, counts, log));
+      const Items = await Promise.all(
+        filtered.map(item => cb(item, counts, log))
+      );
 
       // write new subscriptions to the table
       log(`writing ${Items.length} Items`);
