@@ -18,8 +18,8 @@ import { sleep } from "./lib/util";
  * @param p.batchCb async callback to change a batch of items. is passed the Items array, the
  * counts object, the batchLog function, the batchWrite function, and the dlq array. only called in
  * batch mode. does not return, is responsible for writing changed Items to the table.
- * @param p.scanDelay ms to wait between scan batches
- * @param p.writeDelay ms to wait between write batches
+ * @param p.scanDelay ms to wait between scan batches, defaults to 0.
+ * @param p.writeDelay ms to wait between write batches, defaults to 0.
  * @param p.mode either "batch" or "stream" (default). "stream" calls "cb" for each item in
  * the table, while "batch" calls "batchCb" for each scan batch, and expects that "batchWrite" is
  * explicitly called.
@@ -30,6 +30,7 @@ import { sleep } from "./lib/util";
  * @param p.saveDlq defaults to true. saves dlq to a json file in the current directory,
  * including table name, batch requests, and dynamo error.
  * @param p.quiet defaults to false. when true, silences all log output.
+ * @param p.force defaults to false. when true, allows migration on provisioned-mode table.
  */
 export default async ({
   TableName,

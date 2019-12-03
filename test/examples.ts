@@ -172,6 +172,15 @@ describe("examples", () => {
       });
 
       it("will migrate if forced", async () => {
+        /**
+         * Example 4
+         * Migrating a Provisioned Table
+         *
+         * It's tricky to balance throughput and capacity
+         * when migrating a table in PROVISIONED billing mode.
+         * It's not recommended. If you *really* want to do it,
+         * pass the `force` option, and may the force be with you.
+         */
         const { counts } = await migrate({
           TableName: tableA.TableName,
           region: config.region,
