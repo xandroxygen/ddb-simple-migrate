@@ -42,6 +42,11 @@ export interface BatchCb {
 }
 
 export interface Options {
+  TableName: string;
+  region: string;
+  filterCb?: FilterCb;
+  cb?: Cb;
+  batchCb?: BatchCb;
   scanDelay?: number;
   writeDelay?: number;
   mode?: Mode;
@@ -49,15 +54,6 @@ export interface Options {
   customCounts?: string[];
   saveDlq?: boolean;
   quiet?: boolean;
-}
-
-export interface MigrateParameters {
-  TableName: string;
-  region: string;
-  filterCb?: FilterCb;
-  cb?: Cb;
-  batchCb?: BatchCb;
-  options?: Options;
 }
 
 export interface Counts {

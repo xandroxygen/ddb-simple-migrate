@@ -68,9 +68,7 @@ describe("examples", () => {
             ...Item,
             NewAttr: `simple${Item.Id}`
           }),
-          options: {
-            dynamoEndpoint: config.endpoint
-          }
+          dynamoEndpoint: config.endpoint
         });
         expect(counts.migratedItems).to.equal(ItemCount);
         expect(counts.totalItems).to.equal(ItemCount);
@@ -94,9 +92,7 @@ describe("examples", () => {
             ...Item,
             NewAttr: `filter${Item.Id}`
           }),
-          options: {
-            dynamoEndpoint: config.endpoint
-          }
+          dynamoEndpoint: config.endpoint
         });
         expect(counts.migratedItems).to.equal(50);
         expect(counts.totalItems).to.equal(ItemCount);
@@ -142,11 +138,9 @@ describe("examples", () => {
             log(`writing ${ItemsForB.length} to table B`);
             await batchWrite(client, tableB.TableName, ItemsForB);
           },
-          options: {
-            mode: Mode.Batch,
-            dynamoEndpoint: config.endpoint,
-            customCounts: ["bItems"]
-          }
+          mode: Mode.Batch,
+          dynamoEndpoint: config.endpoint,
+          customCounts: ["bItems"]
         });
 
         expect(counts.bItems).to.equal(2 * counts.totalItems);
