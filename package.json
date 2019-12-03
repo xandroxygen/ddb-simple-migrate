@@ -1,8 +1,10 @@
 {
   "name": "ddb-simple-migrate",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "change every item in a dynamodb table",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist/**/*"],
   "repository": "https://github.com/xandroxygen/ddb-simple-migrate",
   "author": "Xander Moffatt <xander.moffatt@gmail.com>",
   "license": "MIT",
@@ -24,6 +26,7 @@
     "typescript": "^3.7.2"
   },
   "scripts": {
+    "build": "tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
     "test:examples": "mocha -r ts-node/register --timeout 30000 test/examples.ts"
   }
