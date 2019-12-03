@@ -146,5 +146,45 @@ describe("examples", () => {
         expect(counts.bItems).to.equal(2 * counts.totalItems);
       });
     });
+
+    describe("provisioned mode table", () => {
+      beforeEach(async () => {
+        await ensureTable({ ...tableA, BillingMode: "PROVISIONED" });
+        const Items = Array.from({ length: ItemCount }, (_, i) => ({
+          Id: `id${i}`,
+          OtherAttr: i < 50 ? "hello" : "world"
+        }));
+        await batchWrite(docClient, tableA.TableName, Items, 0, true);
+      });
+
+      it("will throw error if not forced", async () => {
+        expect(async () => {
+          await migrate({
+            TableName: tableA.TableName,
+            region: config.region,
+            cb: Item => ({
+              ...Item,
+              NewAttr: `simple${Item.Id}`
+            }),
+            dynamoEndpoint: config.endpoint
+          });
+        }).to.throw;
+      });
+
+      it("will migrate if forced", async () => {
+        const { counts } = await migrate({
+          TableName: tableA.TableName,
+          region: config.region,
+          cb: Item => ({
+            ...Item,
+            NewAttr: `simple${Item.Id}`
+          }),
+          dynamoEndpoint: config.endpoint,
+          force: true
+        });
+        expect(counts.migratedItems).to.equal(ItemCount);
+        expect(counts.totalItems).to.equal(ItemCount);
+      });
+    });
   });
 });

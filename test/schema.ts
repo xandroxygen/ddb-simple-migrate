@@ -1,5 +1,6 @@
 export const tableA = {
   TableName: "tableA",
+  BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
     {
       AttributeName: "Id",
@@ -20,6 +21,7 @@ export const tableA = {
 
 export const tableB = {
   TableName: "tableB",
+  BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
     {
       AttributeName: "Id",

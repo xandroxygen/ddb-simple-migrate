@@ -4,6 +4,18 @@ import { sleep, asyncRetry } from "./util";
 
 export const Limit = 25;
 
+export async function describeTable(
+  TableName: string,
+  region: string,
+  endpoint: string
+) {
+  const client = new AWS.DynamoDB({
+    region,
+    endpoint
+  });
+  return client.describeTable({ TableName }).promise();
+}
+
 export async function batchScan(
   client: AWS.DynamoDB.DocumentClient,
   tableName: string,

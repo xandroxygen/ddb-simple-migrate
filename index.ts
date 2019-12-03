@@ -1,6 +1,6 @@
 import * as AWS from "aws-sdk";
 import { Mode, DLQItem, Counts, Options } from "./definitions";
-import { batchWrite, batchScan } from "./lib/dynamo";
+import { batchWrite, batchScan, describeTable } from "./lib/dynamo";
 import { writeFile } from "fs";
 import { sleep } from "./lib/util";
 /**
@@ -47,7 +47,8 @@ export default async ({
   dynamoEndpoint = "",
   customCounts = [],
   saveDlq = true,
-  quiet = false
+  quiet = false,
+  force = false
 }: Options) => {
   const client = new AWS.DynamoDB.DocumentClient({
     region,
@@ -64,63 +65,78 @@ export default async ({
     counts[custom] = 0;
   });
 
-  if (!quiet) {
-    console.log("...preparing to run with these settings:");
-    console.log(`
-      Table          : ${TableName}
-      Region         : ${region}
-      Mode           : ${mode}
-      Scan Delay     : ${scanDelay}
-      Write Delay    : ${writeDelay},
-      Custom Counters: ${customCounts},
-      Save DLQ?      : ${saveDlq},
-      Dynamo Endpoint: ${
-        dynamoEndpoint !== "" ? dynamoEndpoint : "(AWS default)"
-      }
-    `);
-    console.log("...waiting 5 seconds, press Ctrl-C twice to quit");
-    await sleep(5000);
+  const tableDetails = await describeTable(TableName, region, dynamoEndpoint);
+  const isOnDemand =
+    tableDetails.Table.BillingModeSummary.BillingMode === "PAY_PER_REQUEST";
+  const log = (message: string) => !quiet && console.log(message);
+
+  if (!isOnDemand) {
+    log("**WARNING**");
+    log("The given table is in PROVISIONED mode, which is not recommended.");
+
+    if (force) {
+      log("Since `force: true`, continuing with migration");
+    } else {
+      log(
+        "Ending migration process now - to override this, pass argument `force: true`"
+      );
+      throw new Error("Table not in On-Demand mode");
+    }
   }
+
+  log("...preparing to run with these settings:");
+  log(`
+    Table          : ${TableName}
+    On-Demand?     : ${isOnDemand}
+    Region         : ${region}
+    Mode           : ${mode}
+    Scan Delay     : ${scanDelay}
+    Write Delay    : ${writeDelay},
+    Custom Counters: ${customCounts},
+    Save DLQ?      : ${saveDlq},
+    Dynamo Endpoint: ${dynamoEndpoint !== "" ? dynamoEndpoint : "(AWS default)"}
+  `);
+  log("...waiting 5 seconds, press Ctrl-C twice to quit");
+  await sleep(5000);
 
   let LastEvaluatedKey: AWS.DynamoDB.DocumentClient.Key;
   const migrationStartTime = Date.now();
   const dlq: DLQItem[] = [];
-  const log = (message: string) =>
-    !quiet && console.log(`${counts.batch}: ${message}`);
+  const batchLog = (message: string) => log(`${counts.batch}: ${message}`);
 
   // scan until the table is finished
   do {
-    if (!quiet) {
-      console.log("\n");
-    }
-    log("starting batch!");
+    log("\n");
+    batchLog("starting batch!");
 
     // delay to keep throughput down
-    log(`...sleeping ${scanDelay} ms`);
+    batchLog(`...sleeping ${scanDelay} ms`);
     await sleep(scanDelay);
 
     // read a batch of 25 from the table
-    log("scanning from table");
+    batchLog("scanning from table");
     const batch = await batchScan(client, TableName, LastEvaluatedKey, quiet);
     LastEvaluatedKey = batch.LastEvaluatedKey;
     counts.totalItems += batch.Items.length;
 
-    log(`...filtering`);
-    const filtered = batch.Items.filter(item => filterCb(item, counts, log));
+    batchLog(`...filtering`);
+    const filtered = batch.Items.filter(item =>
+      filterCb(item, counts, batchLog)
+    );
     counts.migratedItems += filtered.length;
 
-    log(`migrating ${filtered.length} Items`);
+    batchLog(`migrating ${filtered.length} Items`);
 
     if (mode === Mode.Batch) {
-      log("handing control to batch mode callback");
-      await batchCb(client, filtered, counts, log, batchWrite);
+      batchLog("handing control to batch mode callback");
+      await batchCb(client, filtered, counts, batchLog, batchWrite);
     } else {
       const Items = await Promise.all(
-        filtered.map(item => cb(item, counts, log))
+        filtered.map(item => cb(item, counts, batchLog))
       );
 
       // write new subscriptions to the table
-      log(`writing ${Items.length} Items`);
+      batchLog(`writing ${Items.length} Items`);
       const batchDlq = await batchWrite(
         client,
         TableName,
@@ -129,10 +145,10 @@ export default async ({
         quiet
       );
       dlq.push(...batchDlq);
-      log("finished writing Items");
+      batchLog("finished writing Items");
     }
 
-    log("finished batch!");
+    batchLog("finished batch!");
     counts.batch++;
     // continue until scan is finished
   } while (LastEvaluatedKey !== undefined);
@@ -143,9 +159,8 @@ export default async ({
     const dlqPath = `migration.dlq.${d.getFullYear()}${d.getMonth() +
       1}${d.getDate()}${d.getHours}${d.getMinutes()}${d.getSeconds}.json`;
 
-    if (!quiet) {
-      console.log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
-    }
+    log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
+
     await new Promise(resolve =>
       writeFile(dlqPath, JSON.stringify(dlq, null, 2), resolve)
     );
@@ -153,20 +168,18 @@ export default async ({
 
   const migrationTime = Date.now() - migrationStartTime;
 
-  if (!quiet) {
-    console.log("\n\n* Finished migration *\n");
-    console.log(`Failed batches      : ${dlq.length}`);
-    console.log(`Total batches       : ${counts.batch}`);
-    console.log(`Total items scanned : ${counts.totalItems}`);
-    console.log(`Total items migrated: ${counts.migratedItems}`);
-    console.log(`Time spent          : ${migrationTime / 1000}s`);
+  log("\n\n* Finished migration *\n");
+  log(`Failed batches      : ${dlq.length}`);
+  log(`Total batches       : ${counts.batch}`);
+  log(`Total items scanned : ${counts.totalItems}`);
+  log(`Total items migrated: ${counts.migratedItems}`);
+  log(`Time spent          : ${migrationTime / 1000}s`);
 
-    if (customCounts.length > 0) {
-      console.log("\n* Custom Counts *");
-      customCounts.forEach(custom => {
-        console.log(`"${custom}": ${counts[custom]}`);
-      });
-    }
+  if (customCounts.length > 0) {
+    log("\n* Custom Counts *");
+    customCounts.forEach(custom => {
+      log(`"${custom}": ${counts[custom]}`);
+    });
   }
 
   return {

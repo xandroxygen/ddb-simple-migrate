@@ -54,6 +54,7 @@ export interface Options {
   customCounts?: string[];
   saveDlq?: boolean;
   quiet?: boolean;
+  force?: boolean;
 }
 
 export interface Counts {
