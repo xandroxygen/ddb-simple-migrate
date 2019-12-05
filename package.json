@@ -1,6 +1,6 @@
 {
   "name": "ddb-simple-migrate",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "change every item in a dynamodb table",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
