@@ -41,16 +41,22 @@ export interface BatchCb {
   );
 }
 
+export interface DynamoOptions {
+  region?: string;
+  endpoint?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+}
+
 export interface Options {
   TableName: string;
-  region: string;
   filterCb?: FilterCb;
   cb?: Cb;
   batchCb?: BatchCb;
   scanDelay?: number;
   writeDelay?: number;
   mode?: Mode;
-  dynamoEndpoint?: string;
+  dynamoOptions: DynamoOptions;
   customCounts?: string[];
   saveDlq?: boolean;
   quiet?: boolean;

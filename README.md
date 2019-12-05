@@ -48,7 +48,6 @@ on a provisioned table.
 ### parameter information
 
 * `TableName` the name of the dynamo table
-* `region` the AWS region, eg 'us-east-1'
 * `filterCb` callback to filter out unneeded items. return true to migrate item
 * `cb` async callback to change item before writing back to table. is passed the Item,
   the counts object, and the batchLog function. not called in batch mode. return the changed item.
@@ -60,8 +59,11 @@ on a provisioned table.
 * `mode` either "batch" or "stream" (default). "stream" calls "cb" for each item in
   the table, while "batch" calls "batchCb" for each scan batch, and expects that "batchWrite" is
   explicitly called.
-* `dynamoEndpoint` endpoint for dynamo tables. if not provided, defaults to the AWS
-  default endpoint for "region"
+* `dynamoOptions` options that are passed to the dynamo client, consists of:
+  * `region` the AWS region. defaults to 'us-east-1'
+  * `endpoint` for dynamo tables. if not provided, defaults to the AWS default endpoint for "region"
+  * `accessKeyId` the AWS access key id, part of AWS credentials
+  * `secretAccessKey` the AWS secret access key, part of AWS credentials
 * `customCounts` only valid in "batch" mode. initializes each string provided in
   "counts", for keeping track of different values. Prints them at the end.
 * `saveDlq` defaults to true. saves dlq to a json file in the current directory,

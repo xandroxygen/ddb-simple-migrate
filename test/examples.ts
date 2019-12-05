@@ -7,12 +7,12 @@ import { batchWrite } from "../lib/dynamo";
 import { Mode } from "../definitions";
 
 describe("examples", () => {
-  const config = {
+  const dynamoOptions = {
     endpoint: "http://dynamo:8000",
     region: "us-east-1"
   };
 
-  const ddb = new AWS.DynamoDB(config);
+  const ddb = new AWS.DynamoDB(dynamoOptions);
 
   const ensureTable = async schema => {
     try {
@@ -63,12 +63,11 @@ describe("examples", () => {
          */
         const { counts } = await migrate({
           TableName: tableA.TableName,
-          region: config.region,
           cb: Item => ({
             ...Item,
             NewAttr: `simple${Item.Id}`
           }),
-          dynamoEndpoint: config.endpoint
+          dynamoOptions
         });
         expect(counts.migratedItems).to.equal(ItemCount);
         expect(counts.totalItems).to.equal(ItemCount);
@@ -86,13 +85,12 @@ describe("examples", () => {
          */
         const { counts } = await migrate({
           TableName: tableA.TableName,
-          region: config.region,
           filterCb: Item => Item.OtherAttr === "hello",
           cb: Item => ({
             ...Item,
             NewAttr: `filter${Item.Id}`
           }),
-          dynamoEndpoint: config.endpoint
+          dynamoOptions
         });
         expect(counts.migratedItems).to.equal(50);
         expect(counts.totalItems).to.equal(ItemCount);
@@ -121,7 +119,6 @@ describe("examples", () => {
          */
         const { counts } = await migrate({
           TableName: tableA.TableName,
-          region: config.region,
           batchCb: async (client, batch, counts, log, batchWrite) => {
             log("writing batch to table A");
             await batchWrite(client, tableA.TableName, batch);
@@ -139,7 +136,7 @@ describe("examples", () => {
             await batchWrite(client, tableB.TableName, ItemsForB);
           },
           mode: Mode.Batch,
-          dynamoEndpoint: config.endpoint,
+          dynamoOptions,
           customCounts: ["bItems"]
         });
 
@@ -161,12 +158,12 @@ describe("examples", () => {
         expect(async () => {
           await migrate({
             TableName: tableA.TableName,
-            region: config.region,
+
             cb: Item => ({
               ...Item,
               NewAttr: `simple${Item.Id}`
             }),
-            dynamoEndpoint: config.endpoint
+            dynamoOptions
           });
         }).to.throw;
       });
@@ -183,12 +180,11 @@ describe("examples", () => {
          */
         const { counts } = await migrate({
           TableName: tableA.TableName,
-          region: config.region,
           cb: Item => ({
             ...Item,
             NewAttr: `simple${Item.Id}`
           }),
-          dynamoEndpoint: config.endpoint,
+          dynamoOptions,
           force: true
         });
         expect(counts.migratedItems).to.equal(ItemCount);

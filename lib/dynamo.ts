@@ -1,18 +1,11 @@
 import * as AWS from "aws-sdk";
-import { DLQItem, BatchWrite } from "../definitions";
+import { DLQItem, BatchWrite, DynamoOptions } from "../definitions";
 import { sleep, asyncRetry } from "./util";
 
 export const Limit = 25;
 
-export async function describeTable(
-  TableName: string,
-  region: string,
-  endpoint: string
-) {
-  const client = new AWS.DynamoDB({
-    region,
-    endpoint
-  });
+export async function describeTable(TableName: string, options: DynamoOptions) {
+  const client = new AWS.DynamoDB(options);
   return client.describeTable({ TableName }).promise();
 }
 
