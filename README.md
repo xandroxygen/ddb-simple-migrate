@@ -70,6 +70,8 @@ on a provisioned table.
   including table name, batch requests, and dynamo error. the dlq is also returned from the operation.
 * `quiet` defaults to false. when true, silences all log output.
 * `force` defaults to false. when true, allows migration on provisioned-mode table.
+* `asScript` defaults to true. most of the time, this will be run as part of a node
+  script, and needs to listen for Ctrl-C to quit.
 
 ## tips
 

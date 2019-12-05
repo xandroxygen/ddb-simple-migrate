@@ -41,6 +41,8 @@ const defaultDynamoOptions = {
  * including table name, batch requests, and dynamo error.
  * @param p.quiet defaults to false. when true, silences all log output.
  * @param p.force defaults to false. when true, allows migration on provisioned-mode table.
+ * @param p.asScript defaults to true. most of the time, this will be run as part of a node
+ * script, and needs to listen for Ctrl-C to quit.
  */
 export const migrate = async ({
   TableName,
@@ -58,8 +60,17 @@ export const migrate = async ({
   customCounts = [],
   saveDlq = true,
   quiet = false,
-  force = false
+  force = false,
+  asScript = true
 }: Options) => {
+  // quit on SIGINT if run as part of a script
+  if (asScript && process) {
+    process.on("SIGINT", function() {
+      console.log("\nCaught interrupt signal, exiting");
+      process.exit();
+    });
+  }
+
   // provide default dynamo options
   dynamoOptions = {
     ...defaultDynamoOptions,

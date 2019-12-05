@@ -61,6 +61,7 @@ export interface Options {
   saveDlq?: boolean;
   quiet?: boolean;
   force?: boolean;
+  asScript?: boolean;
 }
 
 export interface Counts {
