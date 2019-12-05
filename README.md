@@ -45,6 +45,10 @@ Basic usage is covered by the examples in [`test/examples.ts`](test/examples.ts)
 covering one or multiple tables, stream or batch mode, and forcing a migration
 on a provisioned table.
 
+Most of the time, this library will be used in a node script. The script in
+[`test/exampleScript.js`](test/exampleScript.js) is a good example of what
+will generally happen in those scripts.
+
 ### parameter information
 
 * `TableName` the name of the dynamo table
