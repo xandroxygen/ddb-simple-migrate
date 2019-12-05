@@ -1,4 +1,4 @@
-export const tableA: AWS.DynamoDB.CreateTableInput = {
+const tableA = {
   TableName: "tableA",
   BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
@@ -19,7 +19,7 @@ export const tableA: AWS.DynamoDB.CreateTableInput = {
   ]
 };
 
-export const tableB: AWS.DynamoDB.CreateTableInput = {
+const tableB = {
   TableName: "tableB",
   BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
@@ -46,4 +46,9 @@ export const tableB: AWS.DynamoDB.CreateTableInput = {
       KeyType: "RANGE"
     }
   ]
+};
+
+module.exports = {
+  tableA,
+  tableB
 };
