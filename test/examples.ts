@@ -2,7 +2,7 @@ import "mocha";
 import { expect } from "chai";
 import * as AWS from "aws-sdk";
 import { tableA, tableB } from "./schema";
-import migrate from "../index";
+import { migrate } from "../index";
 import { batchWrite } from "../lib/dynamo";
 import { Mode } from "../definitions";
 

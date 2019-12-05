@@ -32,7 +32,7 @@ import { sleep } from "./lib/util";
  * @param p.quiet defaults to false. when true, silences all log output.
  * @param p.force defaults to false. when true, allows migration on provisioned-mode table.
  */
-export default async ({
+export const migrate = async ({
   TableName,
   region,
   filterCb = () => true,
