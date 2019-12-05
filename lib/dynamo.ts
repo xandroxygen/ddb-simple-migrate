@@ -4,6 +4,21 @@ import { sleep, asyncRetry } from "./util";
 
 export const Limit = 25;
 
+export async function ensureTable(
+  schema: AWS.DynamoDB.CreateTableInput,
+  options: DynamoOptions
+) {
+  const client = new AWS.DynamoDB(options);
+  try {
+    const TableName = schema.TableName;
+    await client.describeTable({ TableName }).promise();
+    await client.deleteTable({ TableName }).promise();
+    await client.createTable(schema).promise();
+  } catch (e) {
+    await client.createTable(schema).promise();
+  }
+}
+
 export async function describeTable(TableName: string, options: DynamoOptions) {
   const client = new AWS.DynamoDB(options);
   return client.describeTable({ TableName }).promise();

@@ -3,7 +3,7 @@ import { expect } from "chai";
 import * as AWS from "aws-sdk";
 import { tableA, tableB } from "./schema";
 import { migrate } from "../index";
-import { batchWrite } from "../lib/dynamo";
+import { batchWrite, ensureTable } from "../lib/dynamo";
 import { Mode } from "../definitions";
 
 describe("examples", () => {
@@ -12,25 +12,14 @@ describe("examples", () => {
     region: "us-east-1"
   };
 
-  const ddb = new AWS.DynamoDB(dynamoOptions);
-
-  const ensureTable = async schema => {
-    try {
-      await ddb.describeTable({ TableName: schema.TableName }).promise();
-      await ddb.deleteTable({ TableName: schema.TableName }).promise();
-      await ddb.createTable(schema).promise();
-    } catch (e) {
-      await ddb.createTable(schema).promise();
-    }
-  };
-
   describe("check dynamo is working", () => {
     beforeEach(async () => {
-      await ensureTable(tableA);
+      await ensureTable(tableA, dynamoOptions);
     });
 
     it("created the table correctly", async () => {
-      const result = await ddb
+      const client = new AWS.DynamoDB(dynamoOptions);
+      const result = await client
         .describeTable({ TableName: tableA.TableName })
         .promise();
       expect(result.Table.TableName).to.equal(tableA.TableName);
@@ -38,11 +27,11 @@ describe("examples", () => {
   });
 
   describe("with populated table", () => {
-    const docClient = new AWS.DynamoDB.DocumentClient({ service: ddb });
+    const docClient = new AWS.DynamoDB.DocumentClient(dynamoOptions);
     const ItemCount = 100;
 
     beforeEach(async () => {
-      await ensureTable(tableA);
+      await ensureTable(tableA, dynamoOptions);
       const Items = Array.from({ length: ItemCount }, (_, i) => ({
         Id: `id${i}`,
         OtherAttr: i < 50 ? "hello" : "world"
@@ -99,7 +88,7 @@ describe("examples", () => {
 
     describe("batch mode, two tables", () => {
       beforeEach(async () => {
-        await ensureTable(tableB);
+        await ensureTable(tableB, dynamoOptions);
       });
 
       it("migrates with batch callback", async () => {
@@ -146,7 +135,10 @@ describe("examples", () => {
 
     describe("provisioned mode table", () => {
       beforeEach(async () => {
-        await ensureTable({ ...tableA, BillingMode: "PROVISIONED" });
+        await ensureTable(
+          { ...tableA, BillingMode: "PROVISIONED" },
+          dynamoOptions
+        );
         const Items = Array.from({ length: ItemCount }, (_, i) => ({
           Id: `id${i}`,
           OtherAttr: i < 50 ? "hello" : "world"

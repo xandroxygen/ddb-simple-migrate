@@ -1,4 +1,4 @@
-export const tableA = {
+export const tableA: AWS.DynamoDB.CreateTableInput = {
   TableName: "tableA",
   BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
@@ -19,7 +19,7 @@ export const tableA = {
   ]
 };
 
-export const tableB = {
+export const tableB: AWS.DynamoDB.CreateTableInput = {
   TableName: "tableB",
   BillingMode: "PAY_PER_REQUEST",
   AttributeDefinitions: [
