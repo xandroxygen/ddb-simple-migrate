@@ -31,6 +31,7 @@
     "build": "tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
     "test:examples": "mocha -r ts-node/register --timeout 30000 test/examples.ts",
-    "prepare": "yarn build"
+    "prepare": "yarn build",
+    "postversion": "git push --follow-tags"
   }
 }
