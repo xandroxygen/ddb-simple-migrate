@@ -183,7 +183,7 @@ export const migrate = async ({
   if (saveDlq && dlq.length > 0) {
     const d = new Date();
     const dlqPath = `migration.dlq.${d.getFullYear()}${d.getMonth() +
-      1}${d.getDate()}${d.getHours}${d.getMinutes()}${d.getSeconds}.json`;
+      1}${d.getDate()}${d.getHours()}${d.getMinutes()}${d.getSeconds()}.json`;
 
     log(`...writing ${dlq.length} failed batches to '${dlqPath}'`);
 
